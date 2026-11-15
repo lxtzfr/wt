@@ -1,11 +1,11 @@
-// A checkout's ports and links to sibling repos, declared in package.json `myStack` (config.ts), resolved into its
+// A checkout's ports and links to sibling repos, declared in package.json `localDev` (config.ts), resolved into its
 // `.env.local` block. Slot n: every declared port + 10 * (n - 1), the database name gets `_<n>`. `<repo>/<service>`:
 // the sibling repo's main checkout, or its slot picked with `wt link`. `.env` (vault) is never written.
 
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import type { Checkout } from './checkout.js'
-import { myStackConfig, readJson } from './config.js'
+import { projectConfig, readJson } from './config.js'
 import { LOCAL_ENV, readEnv, writeBlock } from './envLocal.js'
 import { checkoutPath, repoMain } from './paths.js'
 import { log as defaultLog, WtError, type Log } from './run.js'
@@ -33,7 +33,7 @@ export function refTarget(checkout: Checkout, ref: string): Target {
 
 /** The port a service declares, the checkout's own declaration first (a branch may move a port), else its main's. */
 export function declaredPort(path: string, main: string, service: string): number | undefined {
-  const port = myStackConfig(path).services?.[service]?.port ?? readJson(join(main, 'package.json'))?.myStack?.services?.[service]?.port
+  const port = projectConfig(path).services?.[service]?.port ?? projectConfig(main).services?.[service]?.port
   return port ? Number(port) : undefined
 }
 
@@ -45,12 +45,12 @@ export const slotPortOf: PortOf = (target) => {
   if (target.n === null) throw new WtError(`${target.path} is outside the slot layout: no port to derive`)
   if (!existsSync(target.path)) throw new WtError(`${target.path} does not exist`)
   const port = declaredPort(target.path, target.main, target.service)
-  if (!port) throw new WtError(`${target.repo} declares no service "${target.service}" with a port (myStack.services)`)
+  if (!port) throw new WtError(`${target.repo} declares no service "${target.service}" with a port (localDev.services)`)
   return slotPort(port, target.n)
 }
 
 /** Every `{port:<ref>}` / `{url:<ref>}` of the env: which key points at which service of which checkout. */
-export function envRefs(checkout: Checkout, env = myStackConfig(checkout.path).env ?? {}): { key: string; target: Target }[] {
+export function envRefs(checkout: Checkout, env = projectConfig(checkout.path).env ?? {}): { key: string; target: Target }[] {
   return Object.entries(env).flatMap(([key, template]) =>
     [...template.matchAll(PLACEHOLDER)].filter(([, kind]) => kind !== 'database').map(([, , ref]) => ({ key, target: refTarget(checkout, ref!) })),
   )
@@ -73,8 +73,8 @@ export interface ResolvedEnv {
   skipped: { key: string; reason: string }[]
 }
 
-/** `myStack.env` of the checkout with every placeholder resolved. */
-export function resolveEnv(checkout: Checkout, { env = myStackConfig(checkout.path).env ?? {}, portOf = slotPortOf }: { env?: Record<string, string>; portOf?: PortOf } = {}): ResolvedEnv {
+/** `localDev.env` of the checkout with every placeholder resolved. */
+export function resolveEnv(checkout: Checkout, { env = projectConfig(checkout.path).env ?? {}, portOf = slotPortOf }: { env?: Record<string, string>; portOf?: PortOf } = {}): ResolvedEnv {
   const result: ResolvedEnv = { values: {}, secret: [], skipped: [] }
   for (const [key, template] of Object.entries(env)) {
     try {
@@ -100,9 +100,6 @@ export function resolveEnv(checkout: Checkout, { env = myStackConfig(checkout.pa
 
 /** Rewrites the checkout's `.env.local` block from its declarations (after a port or link change). */
 export function applyEnv(checkout: Checkout, log: Log = defaultLog): ResolvedEnv {
-  if ((myStackConfig(checkout.main).wt as { env?: unknown } | undefined)?.env) {
-    throw new WtError('myStack.wt.env is gone: declare ports in myStack.services and the keys in myStack.env (`{port:<service>}`, `{database:<KEY>}`)')
-  }
   const resolved = resolveEnv(checkout)
   writeBlock(checkout.path, resolved.values)
   for (const [key, value] of Object.entries(resolved.values)) log(`${LOCAL_ENV}: ${key}${resolved.secret.includes(key) ? ' set' : `=${value}`}`)

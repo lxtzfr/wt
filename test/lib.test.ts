@@ -1,8 +1,8 @@
-import { mkdtempSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { envRefs, markerPath, normalize, readBlock, readMarker, resolveCheckout, resolveEnv, slotPath, writeBlock, type Checkout } from '../src/index.js'
+import { BLOCK_END, BLOCK_START, envRefs, projectConfig, markerPath, normalize, readBlock, readMarker, resolveCheckout, resolveEnv, slotPath, writeBlock, type Checkout } from '../src/index.js'
 import { slugify } from '../src/issue.js'
 import { sh, workspace } from './helpers.js'
 
@@ -60,6 +60,24 @@ describe('.env.local block', () => {
     expect(readBlock(dir)).toEqual({ A: '1' })
     expect(writeBlock(dir, {})).toBe(true)
     expect(readBlock(dir)).toEqual({})
+  })
+
+  it('reads a v1 block, and replaces it with the new markers', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'wt-env-'))
+    writeFileSync(join(dir, '.env.local'), '# my-stack services: start (rewritten by `pnpm wt env`)\nA=1\n# my-stack services: end\nOTHER=1\n')
+    expect(readBlock(dir)).toEqual({ A: '1' })
+    expect(writeBlock(dir, { A: '2' })).toBe(true)
+    expect(readFileSync(join(dir, '.env.local'), 'utf-8')).toBe(`${BLOCK_START}\nA=2\n${BLOCK_END}\nOTHER=1\n`)
+  })
+})
+
+describe('projectConfig', () => {
+  it('reads localDev, else the v1 myStack key', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'wt-config-'))
+    writeFileSync(join(dir, 'package.json'), JSON.stringify({ myStack: { env: { A: '1' } } }))
+    expect(projectConfig(dir).env).toEqual({ A: '1' })
+    writeFileSync(join(dir, 'package.json'), JSON.stringify({ myStack: { env: { A: '1' } }, localDev: { env: { B: '2' } } }))
+    expect(projectConfig(dir).env).toEqual({ B: '2' })
   })
 })
 

@@ -5,16 +5,23 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 export const LOCAL_ENV = '.env.local'
-export const BLOCK_START = '# my-stack services: start (rewritten by `pnpm wt env`; override a key on a line below the block)'
-const START_PREFIX = '# my-stack services: start'
-export const BLOCK_END = '# my-stack services: end'
+export const BLOCK_START = '# local services: start (generated: override a key on a line below the block)'
+export const BLOCK_END = '# local services: end'
+// The v1 markers: such a block is still read, and replaced by the next write.
+const MARKERS = [
+  { start: '# local services: start', end: BLOCK_END },
+  { start: '# my-stack services: start', end: '# my-stack services: end' },
+]
 
 const readLines = (file: string) => (existsSync(file) ? readFileSync(file, 'utf-8').split(/\r?\n/) : [])
 
 function blockRange(lines: string[]): [number, number] | null {
-  const start = lines.findIndex((line) => line.startsWith(START_PREFIX))
-  const end = lines.indexOf(BLOCK_END)
-  return start >= 0 && end > start ? [start, end] : null
+  for (const marker of MARKERS) {
+    const start = lines.findIndex((line) => line.startsWith(marker.start))
+    const end = start >= 0 ? lines.indexOf(marker.end, start + 1) : -1
+    if (end > start) return [start, end]
+  }
+  return null
 }
 
 const parse = (lines: string[]) =>

@@ -15,13 +15,13 @@ export function workspace(repos: Record<string, object>): { root: string; main: 
   const tmp = normalize(mkdtempSync(join(tmpdir(), 'wt-')))
   const root = join(tmp, 'ws')
   mkdirSync(root)
-  for (const [repo, myStack] of Object.entries(repos)) {
+  for (const [repo, config] of Object.entries(repos)) {
     const origin = join(tmp, 'origin', `${repo}.git`)
     mkdirSync(origin, { recursive: true })
     sh(origin, 'git', 'init', '--quiet', '--bare', '--initial-branch=main')
     sh(root, 'git', 'clone', '--quiet', origin, repo)
     const main = join(root, repo)
-    writeFileSync(join(main, 'package.json'), `${JSON.stringify({ name: repo, myStack: { wt: { setup: [] }, ...myStack } }, null, 2)}\n`)
+    writeFileSync(join(main, 'package.json'), `${JSON.stringify({ name: repo, localDev: { wt: { setup: [] }, ...config } }, null, 2)}\n`)
     writeFileSync(join(main, '.gitignore'), '.env.local\n')
     sh(main, 'git', 'add', '.')
     sh(main, 'git', 'commit', '--quiet', '-m', 'init')

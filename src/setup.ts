@@ -1,11 +1,11 @@
-// What git doesn't carry into a slot: the env files (those env.map.json lists, plus `myStack.wt.copy`), its
-// `.env.local` (services.ts), then the project's setup commands (`myStack.wt.setup`, default `pnpm install`).
+// What git doesn't carry into a slot: the env files (those env.map.json lists, plus `localDev.wt.copy`), its
+// `.env.local` (services.ts), then the project's setup commands (`localDev.wt.setup`, default `pnpm install`).
 // Values are never printed when they come from env files: those hold secrets.
 
 import { cpSync, existsSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import type { Checkout } from './checkout.js'
-import { myStackConfig, readJson } from './config.js'
+import { projectConfig, readJson } from './config.js'
 import { log, sh } from './run.js'
 import { applyEnv } from './services.js'
 
@@ -15,7 +15,7 @@ function envFiles(main: string): string[] {
 }
 
 export function setupSlot(slot: Checkout): void {
-  const config = myStackConfig(slot.main).wt ?? {}
+  const config = projectConfig(slot.main).wt ?? {}
   for (const rel of [...envFiles(slot.main), ...(config.copy ?? [])]) {
     const from = join(slot.main, rel)
     const to = join(slot.path, rel)

@@ -18,7 +18,7 @@ branch carries the ticket.
 Node 22+, pnpm, `git`; `gh` for the commands that create or read issues.
 
 ```sh
-pnpm add -D github:lxtzfr/wt#v1.0.0
+pnpm add -D github:lxtzfr/wt#v2.0.0
 ```
 
 pnpm builds it on install (TypeScript): allow that in `package.json` (or `allowBuilds` in `pnpm-workspace.yaml`):
@@ -50,10 +50,10 @@ Slot commands run from the main checkout; `list`, `env` and `link` from any chec
 
 ## Configuration
 
-In each repo's `package.json`:
+In each repo's `package.json` (`myStack`, its name before v2, is still read):
 
 ```json
-"myStack": {
+"localDev": {
   "services": { "api": { "port": 3001, "run": "pnpm start:dev" } },
   "env": {
     "PORT": "{port:api}",
@@ -74,10 +74,10 @@ In each repo's `package.json`:
 `.env.local` gets a managed block; a line written below it overrides a key:
 
 ```
-# my-stack services: start (rewritten by `pnpm wt env`; override a key on a line below the block)
+# local services: start (generated: override a key on a line below the block)
 PORT=3011
 WEB_URL=http://localhost:4110
-# my-stack services: end
+# local services: end
 ```
 
 Your app loads `.env.local` before `.env` (Vite does it already).
@@ -97,7 +97,7 @@ writeBlock(checkout.path, values)
 [porlocal](https://github.com/lxtzfr/porlocal) uses it to give services free ports and keep every `.env.local`
 pointing at them.
 
-Stable contracts (a change is a major version): the slot layout, the `.env.local` block markers, the `myStack` keys,
+Stable contracts (a change is a major version): the slot layout, the `.env.local` block markers, the `localDev` keys,
 the slot file `my-stack-wt.json` in each worktree's git dir (`version` field), and the library exports.
 
 ## License

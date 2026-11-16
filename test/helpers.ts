@@ -7,6 +7,8 @@ import { normalize } from '../src/paths.js'
 const CLI = join(import.meta.dirname, '..', 'dist', 'cli.js')
 const IDENTITY = { GIT_AUTHOR_NAME: 't', GIT_AUTHOR_EMAIL: 't@t', GIT_COMMITTER_NAME: 't', GIT_COMMITTER_EMAIL: 't@t' }
 Object.assign(process.env, IDENTITY)
+// The user-level project map: a temp one, never the real ~/.wt.
+process.env.WT_HOME = mkdtempSync(join(tmpdir(), 'wt-home-'))
 
 export const sh = (cwd: string, cmd: string, ...args: string[]) => execFileSync(cmd, args, { cwd, encoding: 'utf-8', stdio: ['ignore', 'pipe', 'pipe'] }).trim()
 

@@ -9,6 +9,7 @@ import { currentCheckout, type Checkout } from './checkout.js'
 import { branchName, createIssue, getIssue, repoSlug, setIssueBody, slugify, type Issue } from './issue.js'
 import { readMarker, writeMarker, type Links } from './marker.js'
 import { normalize, repoMain, slotPath } from './paths.js'
+import { listProjects, registerProject, registryFile } from './registry.js'
 import { git, log, WtError } from './run.js'
 import { applyEnv } from './services.js'
 import { setupSlot } from './setup.js'
@@ -18,7 +19,8 @@ const USAGE = `usage:
   wt new "<title>" [--type Task|Bug|Question] | new --issue <n> | new --branch <name>   [--new-slot] [--link <slot>,..]
   wt new "<title>" --repos <repo>,<repo>[,..] [--type ..] [--new-slot]   (from the workspace repo: one slot per repo)
   wt list | wt setup <slot> | wt done <slot> | wt free <slot> | wt remove <slot> [--force]
-  wt env | wt link [<repo>-<n> | <repo>]...   (the checkout it runs in)`
+  wt env | wt link [<repo>-<n> | <repo>]...   (the checkout it runs in)
+  wt register [<dir>...] | wt projects   (every command registers its repo in ~/.wt/projects.json; this adds one by hand, lists them)`
 
 // pnpm runs a script from the package root: INIT_CWD is where the user typed it.
 const cwd = normalize(process.env.INIT_CWD || process.cwd())
@@ -289,7 +291,21 @@ function cmdRemove(opts: Opts): void {
   log(`${slot.name} removed${slot.branch ? ` (branch ${slot.branch} kept)` : ''}`)
 }
 
-const commands: Record<string, (opts: Opts) => void> = { new: cmdNew, list: cmdList, setup: cmdSetup, env: cmdEnv, link: cmdLink, done: cmdDone, free: cmdFree, remove: cmdRemove }
+function cmdRegister(opts: Opts): void {
+  for (const dir of opts._.length ? opts._ : [cwd]) {
+    const main = mainRoot(normalize(dir))
+    registerProject(main)
+    log(`registered ${main}`)
+  }
+}
+
+function cmdProjects(): void {
+  const projects = listProjects()
+  if (!projects.length) return log(`no project yet (${registryFile()})`)
+  for (const p of projects) console.log(`${p.path}  ${new Date(p.lastSeen).toLocaleString()}`)
+}
+
+const commands: Record<string, (opts: Opts) => void> = { register: cmdRegister, projects: cmdProjects, new: cmdNew, list: cmdList, setup: cmdSetup, env: cmdEnv, link: cmdLink, done: cmdDone, free: cmdFree, remove: cmdRemove }
 
 const [command, ...rest] = process.argv.slice(2)
 if (!command || command === '--help' || command === '-h') {
@@ -299,6 +315,12 @@ if (!command || command === '--help' || command === '-h') {
   process.exit(1)
 } else {
   try {
+    // Automatic: whatever wt runs for, its repo joins the user's map (a folder outside git, or a failed write: skipped).
+    if (command !== 'register' && command !== 'projects') {
+      try {
+        registerProject(mainRoot(cwd))
+      } catch {}
+    }
     commands[command](parse(rest))
   } catch (err) {
     if (!(err instanceof WtError)) throw err

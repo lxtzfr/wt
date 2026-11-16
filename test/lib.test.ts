@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { BLOCK_END, BLOCK_START, envRefs, projectConfig, markerPath, normalize, readBlock, readMarker, resolveCheckout, resolveEnv, slotPath, writeBlock, type Checkout } from '../src/index.js'
+import { BLOCK_END, BLOCK_START, envRefs, listProjects, listWorktrees, registerProject, projectConfig, markerPath, normalize, readBlock, readMarker, resolveCheckout, resolveEnv, slotPath, writeBlock, type Checkout } from '../src/index.js'
 import { slugify } from '../src/issue.js'
 import { sh, workspace } from './helpers.js'
 
@@ -83,4 +83,20 @@ describe('projectConfig', () => {
 
 it('slugifies a title into a branch name', () => {
   expect(slugify("Ma tâche: écran d'accueil du jeu")).toBe('ma-tache-ecran-d-accueil')
+})
+
+describe('worktrees and the project map', () => {
+  it('lists every worktree, those outside the slot layout too', () => {
+    const list = listWorktrees(server)
+    expect(list.map((w) => [w.name, w.n])).toEqual(expect.arrayContaining([['server', 1], ['server-3', 3], ['elsewhere', null]]))
+  })
+
+  it('registers a main checkout once, lists the ones still there', () => {
+    registerProject(server)
+    registerProject(server)
+    const gone = normalize(mkdtempSync(join(tmpdir(), 'wt-gone-')))
+    registerProject(gone)
+    expect(listProjects().map((p) => p.path)).toContain(server)
+    expect(listProjects().map((p) => p.path)).not.toContain(gone)
+  })
 })

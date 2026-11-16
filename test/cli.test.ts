@@ -89,4 +89,11 @@ describe('wt', () => {
     expect(wt(web, 'remove', 'web-2').status).toBe(0)
     expect(existsSync(web2)).toBe(false)
   })
+
+  it('registers its repo by itself, and by hand', () => {
+    expect(wt(web, 'projects').out).toContain(web)
+    const other = workspace({ api: {} }).main('api')
+    expect(wt(other, 'register').status).toBe(0)
+    expect(wt(other, 'projects').out).toContain(other)
+  })
 })

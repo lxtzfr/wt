@@ -8,5 +8,6 @@ export { MARKER_FILE, MARKER_VERSION, markerPath, readMarker, writeMarker, type 
 export { normalize, slotsDir, slotPath, checkoutPath, repoMain, slotNumber } from './paths.js'
 export { WtError } from './run.js'
 export { slotPort, refTarget, declaredPort, slotPortOf, envRefs, resolveEnv, applyEnv, type Target, type PortOf, type ResolvedEnv } from './services.js'
-export { mainRoot, isMainCheckout, defaultBranch, listSlots, findSlot, isClean, unityOpen, isFree, type Slot } from './slots.js'
+export { mainRoot, isMainCheckout, defaultBranch, listSlots, listWorktrees, findSlot, isClean, unityOpen, isFree, type Slot, type Worktree } from './slots.js'
+export { registerProject, listProjects, registryFile, type RegisteredProject } from './registry.js'
 export { slugify, branchName } from './issue.js'

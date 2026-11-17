@@ -74,7 +74,7 @@ describe('wt', () => {
     const r = wt(web, 'done', 'web-2')
     expect(r.status, r.out).toBe(0)
     expect(existsSync(join(web, 'feature.txt'))).toBe(true)
-    expect(sh(web, 'git', 'log', '-1', '--format=%s %P')).toMatch(/^Merge branch '5-x' \w+ \w+$/)
+    expect(sh(web, 'git', 'log', '-1', '--format=%s %P')).toMatch(/^#5: Merge branch '5-x' \w+ \w+$/)
     expect(sh(web, 'git', 'ls-remote', '--heads', 'origin', '5-x')).toBe('')
     expect(readMarker(web2).branch).toBeNull()
   })

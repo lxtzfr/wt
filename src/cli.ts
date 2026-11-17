@@ -260,7 +260,9 @@ function cmdDone(opts: Opts): void {
 
   git(main, 'pull', '--quiet', '--ff-only')
   log(`merging ${branch} into ${base} (--no-ff)`)
-  git(main, 'merge', '--no-ff', branch, '-m', `Merge branch '${branch}'`)
+  // The ticket number prefixes every commit of the branch (`<n>-<slug>`), the merge included; none: git's own subject.
+  const ticket = /^(\d+)-/.exec(branch)?.[1]
+  git(main, 'merge', '--no-ff', branch, '-m', `${ticket ? `#${ticket}: ` : ''}Merge branch '${branch}'`)
   git(main, 'push', '--quiet')
   git(slot.path, 'fetch', '--quiet', 'origin')
   git(slot.path, 'switch', '--detach', `origin/${base}`)

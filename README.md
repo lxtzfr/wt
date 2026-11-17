@@ -18,7 +18,7 @@ branch carries the ticket.
 Node 22+, pnpm, `git`; `gh` for the commands that create or read issues.
 
 ```sh
-pnpm add -D github:lxtzfr/wt#v2.0.0
+pnpm add -D github:lxtzfr/wt#v2.1.0
 ```
 
 pnpm builds it on install (TypeScript): allow that in `package.json` (or `allowBuilds` in `pnpm-workspace.yaml`):
@@ -43,8 +43,9 @@ Then add `"wt": "wt"` to `scripts` and run it as `pnpm wt <command>`.
 | `wt env` | Rewrites this checkout's `.env.local` block (after a port or link change) |
 | `wt link [<repo>-<n> \| <repo>]...` | Shows or changes this checkout's links (`<repo>` alone: back to its main checkout) |
 | `wt free <slot>` | Parks the ticket: the slot goes back to the default branch, the branch is kept |
-| `wt done <slot>` | Merges the branch (`--no-ff`) into the default branch, pushes, deletes it, frees the slot |
+| `wt done <slot>` | Merges the branch (`--no-ff`, message `#<n>: Merge branch '<branch>'`) into the default branch, pushes, deletes it, frees the slot |
 | `wt remove <slot> [--force]` | Removes the worktree |
+| `wt register [<dir>...]` / `wt projects` | Adds a repo to the user's map of projects (`~/.wt/projects.json`, every command does it by itself) / lists them |
 
 Slot commands run from the main checkout; `list`, `env` and `link` from any checkout.
 

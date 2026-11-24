@@ -43,7 +43,7 @@ Then add `"wt": "wt"` to `scripts` and run it as `pnpm wt <command>`.
 | `wt env` | Rewrites this checkout's `.env.local` block (after a port or link change) |
 | `wt link [<repo>-<n> \| <repo>]...` | Shows or changes this checkout's links (`<repo>` alone: back to its main checkout) |
 | `wt free <slot>` | Parks the ticket: the slot goes back to the default branch, the branch is kept |
-| `wt done <slot>` | Merges the branch (`--no-ff`, message `#<n>: Merge branch '<branch>'`) into the default branch, pushes, deletes it, frees the slot |
+| `wt done <slot>` | Merges the branch (`--no-ff`, message `#<n>: Merge branch '<branch>'`) into the default branch from the slot itself (whatever the main checkout is on; a conflict leaves the slot on its branch), pushes, deletes it, frees the slot; the main checkout is fast-forwarded only when it is on the default branch |
 | `wt remove <slot> [--force]` | Removes the worktree |
 | `wt register [<dir>...]` / `wt projects` | Adds a repo to the user's map of projects (`~/.wt/projects.json`, every command does it by itself) / lists them |
 

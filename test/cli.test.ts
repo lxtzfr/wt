@@ -79,6 +79,43 @@ describe('wt', () => {
     expect(readMarker(web2).branch).toBeNull()
   })
 
+  it('merges from the slot while the main checkout is busy on another branch, leaving it alone', () => {
+    writeFileSync(join(server2, 'api.txt'), 'x\n')
+    sh(server2, 'git', 'add', 'api.txt')
+    sh(server2, 'git', 'commit', '--quiet', '-m', '#6: api')
+    sh(server, 'git', 'switch', '--quiet', '-c', 'other')
+    writeFileSync(join(server, 'wip.txt'), 'wip\n')
+
+    const r = wt(server, 'done', 'server-2')
+    expect(r.status, r.out).toBe(0)
+    expect(r.out).toContain('main checkout on other: not updated')
+    expect(sh(server, 'git', 'branch', '--show-current')).toBe('other')
+    expect(readFileSync(join(server, 'wip.txt'), 'utf-8')).toBe('wip\n')
+    sh(server, 'git', 'fetch', '--quiet', 'origin')
+    expect(sh(server, 'git', 'log', '-1', '--format=%s', 'origin/main')).toBe("#6: Merge branch '6-y'")
+    expect(sh(server, 'git', 'branch', '--list', '6-y')).toBe('')
+    expect(readMarker(server2).branch).toBeNull()
+  })
+
+  it('gives a conflicting ticket back to its slot, nothing pushed', () => {
+    expect(wt(server, 'new', '--branch', '7-z').status).toBe(0)
+    writeFileSync(join(server2, 'api.txt'), 'slot\n')
+    sh(server2, 'git', 'commit', '--quiet', '-am', '#7: slot side')
+    const other = slotPath(server, 3)
+    sh(server, 'git', 'worktree', 'add', '--quiet', '--detach', other, 'origin/main')
+    writeFileSync(join(other, 'api.txt'), 'main\n')
+    sh(other, 'git', 'commit', '--quiet', '-am', 'main side')
+    sh(other, 'git', 'push', '--quiet', 'origin', 'HEAD:main')
+    const pushed = sh(other, 'git', 'rev-parse', 'HEAD')
+
+    const r = wt(server, 'done', 'server-2')
+    expect(r.status).toBe(1)
+    expect(r.out).toContain('7-z not merged')
+    expect(sh(server2, 'git', 'branch', '--show-current')).toBe('7-z')
+    expect(sh(server2, 'git', 'status', '--porcelain')).toBe('')
+    expect(sh(server, 'git', 'ls-remote', 'origin', 'refs/heads/main').split(/\s/)[0]).toBe(pushed)
+  })
+
   it('keeps a hand-written override below the block', () => {
     writeFileSync(join(web, '.env.local'), `${readFileSync(join(web, '.env.local'), 'utf-8')}API_URL=http://localhost:9999\n`)
     expect(wt(web, 'env').status).toBe(0)

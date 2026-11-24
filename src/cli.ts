@@ -256,20 +256,51 @@ function cmdDone(opts: Opts): void {
   if (!branch) throw new WtError(`${slot.name} has no branch: nothing to merge`)
   requireIdle(slot)
   const base = defaultBranch(main)
-  if (git(main, 'branch', '--show-current') !== base) throw new WtError(`the main checkout must be on ${base}`)
 
-  git(main, 'pull', '--quiet', '--ff-only')
+  // Merged in the slot, onto origin's tip, never in the main checkout: another session often holds it (another branch,
+  // uncommitted work), and a conflict stays in the slot instead of leaving that checkout mid-merge
+  git(slot.path, 'fetch', '--quiet', 'origin')
+  git(slot.path, 'switch', '--quiet', '--detach', `origin/${base}`)
   log(`merging ${branch} into ${base} (--no-ff)`)
   // The ticket number prefixes every commit of the branch (`<n>-<slug>`), the merge included; none: git's own subject.
   const ticket = /^(\d+)-/.exec(branch)?.[1]
-  git(main, 'merge', '--no-ff', branch, '-m', `${ticket ? `#${ticket}: ` : ''}Merge branch '${branch}'`)
-  git(main, 'push', '--quiet')
-  git(slot.path, 'fetch', '--quiet', 'origin')
-  git(slot.path, 'switch', '--detach', `origin/${base}`)
-  git(main, 'branch', '-d', branch)
+  try {
+    git(slot.path, 'merge', '--no-ff', branch, '-m', `${ticket ? `#${ticket}: ` : ''}Merge branch '${branch}'`)
+    git(slot.path, 'push', '--quiet', 'origin', `HEAD:${base}`)
+  } catch (err) {
+    backToBranch(slot.path, branch)
+    throw new WtError(`${branch} not merged (${(err as Error).message}): merge origin/${base} into it in ${slot.name}, then wt done again`)
+  }
+  git(slot.path, 'branch', '-d', branch)
   if (git(main, 'ls-remote', '--heads', 'origin', branch)) git(main, 'push', '--quiet', 'origin', '--delete', branch)
+  updateMain(main, base)
   releaseSlot(main, slot)
   log(`${branch} merged and pushed, ${slot.name} is free`)
+}
+
+// A failed merge or push: the slot goes back to its branch as it was, the local merge commit (if any) dropped
+function backToBranch(path: string, branch: string): void {
+  try {
+    git(path, 'merge', '--abort')
+  } catch {
+    // no merge in progress: the merge went through, the push failed
+  }
+  git(path, 'switch', '--quiet', '--discard-changes', branch)
+}
+
+// The main checkout follows only when it sits on the default branch and can fast-forward: another branch or
+// uncommitted work in the way is someone else's, left alone
+function updateMain(main: string, base: string): void {
+  const current = git(main, 'branch', '--show-current')
+  if (current !== base) {
+    log(`main checkout on ${current || 'a detached HEAD'}: not updated`)
+    return
+  }
+  try {
+    git(main, 'pull', '--quiet', '--ff-only')
+  } catch (err) {
+    log(`main checkout not updated (${(err as Error).message}): pull it once free`)
+  }
 }
 
 /** Parks a ticket without merging it: the branch stays (local and pushed), the slot goes back to the default branch. */

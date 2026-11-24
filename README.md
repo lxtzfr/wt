@@ -18,7 +18,7 @@ branch carries the ticket.
 Node 22+, pnpm, `git`; `gh` for the commands that create or read issues.
 
 ```sh
-pnpm add -D github:lxtzfr/wt#v2.1.0
+pnpm add -D github:lxtzfr/wt#v2.2.0
 ```
 
 pnpm builds it on install (TypeScript): allow that in `package.json` (or `allowBuilds` in `pnpm-workspace.yaml`):

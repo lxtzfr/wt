@@ -1,6 +1,6 @@
 {
   "name": "@lxtzfr/wt",
-  "version": "2.1.1",
+  "version": "2.2.0",
   "description": "Worktree slots for multi-repo dev: one slot per ticket, its own ports, links between repos in .env.local",
   "license": "MIT",
   "type": "module",
